@@ -1,0 +1,14 @@
+package server
+
+authors    = "Robert Iannuzzo"
+sourcedir  = "src"
+depends    = contrib, container-compendium
+
+modules = JSONRPC
+        , MCP.Types
+        , MCP.Container
+        , MCP.Transport
+        , Server
+
+main       = Server
+executable = "server"

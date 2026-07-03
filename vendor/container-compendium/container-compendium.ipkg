@@ -1,0 +1,14 @@
+package container-compendium
+
+sourcedir = "src"
+depends   = contrib
+
+-- Minimal slice: just enough for MCP's request/response container and its
+-- morphisms. The full compendium ipkg lists ~90 modules including
+-- proofs/tactics/interactive-REPL code we don't need.
+modules = Data.Boundary
+        , Data.Category.Ops
+        , Data.Container.Definition
+        , Data.Container.Extension.Definition
+        , Data.Container.Morphism.Chart
+        , Data.Container.Morphism.Definition

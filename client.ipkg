@@ -1,0 +1,13 @@
+package client
+
+authors    = "Robert Iannuzzo"
+sourcedir  = "src"
+depends    = contrib
+
+modules = JSONRPC
+        , MCP.Types
+        , MCP.Transport
+        , Client
+
+main       = Client
+executable = "client"

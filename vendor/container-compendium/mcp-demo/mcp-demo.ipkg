@@ -1,0 +1,8 @@
+package mcp-demo
+
+depends    = container-compendium
+sourcedir  = "."
+modules    = McpReal
+
+main       = McpReal
+executable = "mcp-demo"
