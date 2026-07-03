@@ -116,7 +116,10 @@ renderNumber d =
   in if cast n == d then show n else show d
 
 ||| Compact JSON rendering, like `Language.JSON`'s `Show`, but with
-||| `renderNumber` for `JNumber`.
+||| `renderNumber` for `JNumber`. Exported because anything that sends
+||| JSON with whole-number fields to a strict peer needs it -- the
+||| Anthropic API, for one, rejects `"max_tokens": 1024.0`.
+export
 render : JSON -> String
 render JNull = "null"
 render (JBoolean x) = if x then "true" else "false"

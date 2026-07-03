@@ -19,6 +19,8 @@ import System.File
 import System.File.Process
 import System.Escape
 
+import JSONRPC
+
 %default covering
 
 -- -----------------------------------------------------------------------------
@@ -95,12 +97,18 @@ callLLM sys user = do
   let cfgPath  = "/private/tmp/idris-mcp-llm-cfg-"  ++ show pid ++ ".curl"
   let body = JObject
         [ ("model", JString "claude-sonnet-5")
-        , ("max_tokens", JNumber 1024)
+        -- Sonnet 5 does extended thinking by default, and thinking tokens
+        -- count against max_tokens. 1024 was observed to be entirely
+        -- consumed by a thinking block on a nontrivial lemma (stop_reason
+        -- max_tokens, zero text output), so leave generous headroom.
+        , ("max_tokens", JNumber 8192)
         , ("system", JString sys)
         , ("messages", JArray
             [ JObject [("role", JString "user"), ("content", JString user)] ])
         ]
-  Right () <- writeFile bodyPath (show body)
+  -- render (not `show`): Language.JSON prints JNumber 1024 as "1024.0",
+  -- which the API rejects for integer fields like max_tokens.
+  Right () <- writeFile bodyPath (render body)
     | Left err => pure (Left ("could not write request body: " ++ show err))
   let cfg = unlines
         [ "silent"
@@ -229,6 +237,18 @@ parseLLMReply text =
            Just rest => Just (trim rest)
            Nothing   => findPrefixed pfx ls
 
+||| Expand literal backslash-n two-character sequences into real newlines.
+||| The TERM reply line is a single line on the wire; this is how it can
+||| still carry a multi-clause definition (needed for structural recursion
+||| under %default total).
+expandNewlines : String -> String
+expandNewlines s = go (unpack s)
+  where
+    go : List Char -> String
+    go ('\\' :: 'n' :: rest) = "\n" ++ go rest
+    go (c :: rest)           = cast c ++ go rest
+    go []                    = ""
+
 ||| `prove`: translate an English prompt into a signature+term via the LLM,
 ||| verify it against the real typechecker, and on failure feed the
 ||| checker's own diagnostic back to the LLM for another attempt, capped at
@@ -244,11 +264,16 @@ proveGoal prompt = go maxRetries Nothing []
     systemPrompt : String
     systemPrompt = unlines
       [ "You translate an English request for a mathematical lemma into a single"
-      , "Idris2 type signature and a term that proves it. Respond with EXACTLY"
+      , "Idris2 type signature and a definition that proves it. Respond with EXACTLY"
       , "three lines, no other text before or after:"
       , "SIGNATURE: <a top-level Idris2 type signature, name the goal 'goal'>"
-      , "TERM: <'goal = ' followed by a term or tactic script proving it>"
+      , "TERM: <the defining clause(s) for 'goal'. Multiple pattern-matching"
+      , "clauses are encouraged (e.g. for induction); separate clauses with a"
+      , "literal backslash-n two-character sequence, which will be expanded to a"
+      , "real newline before checking>"
       , "PARAPHRASE: <one plain English sentence restating what SIGNATURE says>"
+      , "The code is checked with %default total: recursion must be structural"
+      , "(pattern-matching clauses), not via case-of inside a lambda."
       ]
 
     userMessage : Maybe (String, String, String) -> String
@@ -272,7 +297,8 @@ proveGoal prompt = go maxRetries Nothing []
         | Left err => pure (ParseErr ("LLM call failed: " ++ err))
       case parseLLMReply reply of
            Nothing => pure (ParseErr ("could not parse LLM reply into SIGNATURE/TERM/PARAPHRASE:\n" ++ reply))
-           Just (sig, trm, para) => do
+           Just (sig, trmRaw, para) => do
+             let trm = expandNewlines trmRaw
              result <- checkModule (wrapCandidate sig trm)
              case result of
                   Right () => pure (Checked sig trm para)
