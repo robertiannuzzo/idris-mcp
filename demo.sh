@@ -56,11 +56,14 @@ step "5. prove: commutativity of addition (the model invents helper lemmas)" \
      "Watch the term field: multiple machine-checked definitions."
 request '{"jsonrpc":"2.0","id":4,"method":"prove","params":{"prompt":"addition of natural numbers is commutative"}}'
 
-step "6. prove: something false -- the system cannot fake it" \
-     "Unsound escape hatches (believe_me etc.) are blocked before the
-typechecker. Observed behavior: the model proves the NEGATION instead,
-and the paraphrase field discloses exactly what was really proven --
-read it aloud."
+step "6. prove: something false -- watch the signature, not just the outcome" \
+     "Unsound escape hatches (believe_me etc.) are blocked, so the model
+CANNOT get 'checked' on the false claim itself. Observed behavior: it
+comes back 'checked' anyway -- but read the signature, it silently
+swapped in the NEGATION (Not (n = S n)), a true statement. The paraphrase
+discloses the swap in English. Say this out loud: outcome=checked does
+NOT mean the original prompt was proven -- read signature+paraphrase
+every time. That gap is exactly what those fields are for."
 request '{"jsonrpc":"2.0","id":5,"method":"prove","params":{"prompt":"every natural number equals its successor"}}'
 
 echo

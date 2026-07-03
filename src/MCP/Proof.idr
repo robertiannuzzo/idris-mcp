@@ -119,11 +119,15 @@ callLLM sys user = do
   let cfgPath  = "/private/tmp/idris-mcp-llm-cfg-"  ++ show pid ++ ".curl"
   let body = JObject
         [ ("model", JString "claude-sonnet-5")
+        , ("max_tokens", JNumber 2048)
         -- Sonnet 5 does extended thinking by default, and thinking tokens
-        -- count against max_tokens. 1024 was observed to be entirely
-        -- consumed by a thinking block on a nontrivial lemma (stop_reason
-        -- max_tokens, zero text output), so leave generous headroom.
-        , ("max_tokens", JNumber 8192)
+        -- count against max_tokens. Raising max_tokens alone doesn't fix
+        -- this -- observed live: even at 8192, a "prove something false"
+        -- prompt spent the *entire* budget thinking (thinking_tokens=8192,
+        -- stop_reason=max_tokens) and emitted zero actual text. Disabling
+        -- thinking outright is the real fix: fast, cheap, and the budget
+        -- goes to the three-line reply we actually need.
+        , ("thinking", JObject [("type", JString "disabled")])
         , ("system", JString sys)
         , ("messages", JArray
             [ JObject [("role", JString "user"), ("content", JString user)] ])

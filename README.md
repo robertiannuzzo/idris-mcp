@@ -88,5 +88,16 @@ are ever returned as proofs.
 Results carry evidence, never a bare boolean: `checked` (the accepted signature/term),
 `refuted` (a specific candidate failed, with the compiler diagnostic verbatim), `unknown`
 (out of attempts, with the full attempt history — absence of a proof is not evidence of
-falsity), or `parse_error`. A hallucinated proof cannot come back `checked`; the honest
-failure mode is `unknown`, never a wrong answer.
+falsity), or `parse_error`. Unsound escape hatches (`believe_me`, `assert_total`,
+`unsafePerformIO`, FFI, etc.) are rejected before a candidate ever reaches the typechecker,
+so `checked` cannot mean "the false claim was accepted."
+
+**But `checked` is not the same guarantee as "the original prompt was proven."** Verified
+live: asked to prove `every natural number equals its successor` (false), the model did not
+fabricate a fake proof of it — but it also did not come back `unknown`. It silently swapped
+in the *negation*, `(n : Nat) -> n = S n -> Void`, a true statement, and that legitimately
+checked. The `paraphrase` field is what discloses the swap ("it is impossible that n equals
+its successor" — visibly a different claim from the prompt). **Always read `signature` and
+`paraphrase`, not just `outcome`** — `checked` means *some* well-typed statement was proven,
+not necessarily the one you asked for. This is the actual, observed misformalization risk
+the paraphrase field exists to catch, not a hypothetical one.
