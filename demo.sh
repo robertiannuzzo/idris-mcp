@@ -56,14 +56,18 @@ step "5. prove: commutativity of addition (the model invents helper lemmas)" \
      "Watch the term field: multiple machine-checked definitions."
 request '{"jsonrpc":"2.0","id":4,"method":"prove","params":{"prompt":"addition of natural numbers is commutative"}}'
 
-step "6. prove: something false -- watch the signature, not just the outcome" \
+step "6. prove: something false -- this step is non-deterministic, know both outcomes" \
      "Unsound escape hatches (believe_me etc.) are blocked, so the model
-CANNOT get 'checked' on the false claim itself. Observed behavior: it
-comes back 'checked' anyway -- but read the signature, it silently
-swapped in the NEGATION (Not (n = S n)), a true statement. The paraphrase
-discloses the swap in English. Say this out loud: outcome=checked does
-NOT mean the original prompt was proven -- read signature+paraphrase
-every time. That gap is exactly what those fields are for."
+CANNOT get 'checked' on the false claim itself. Observed live, same
+prompt, different runs -- BOTH of these are correct, expected behavior:
+  (a) 'checked' -- but read the signature: it silently swapped in the
+      NEGATION (Not (n = S n)), a true statement. Say out loud:
+      outcome=checked does NOT mean the original prompt was proven --
+      read signature+paraphrase every time.
+  (b) 'unknown' with the full attempt history -- it tried believe_me,
+      got blocked, tried a couple of invalid 'impossible' cases, ran out
+      of its 3-attempt budget, and honestly gave up rather than fake it.
+Either way the invariant holds: the false claim itself never checks."
 request '{"jsonrpc":"2.0","id":5,"method":"prove","params":{"prompt":"every natural number equals its successor"}}'
 
 echo
