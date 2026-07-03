@@ -6,6 +6,7 @@ depends    = contrib, container-compendium
 
 modules = JSONRPC
         , MCP.Types
+        , MCP.Proof
         , MCP.Container
         , MCP.Transport
         , Server

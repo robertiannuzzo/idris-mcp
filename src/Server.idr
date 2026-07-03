@@ -25,8 +25,10 @@ handleRequest : RpcId -> String -> Maybe JSON -> IO ()
 handleRequest id method params =
   case decodeRequest method params of
        UnknownMethod => sendError id (mkError methodNotFound ("unknown method: " ++ method))
-       BadParams     => sendError id (mkError invalidParams (method ++ " requires a 'name' field"))
-       Ok m          => sendResult id (encodeResult m (dispatch m))
+       BadParams     => sendError id (mkError invalidParams (method ++ ": missing or malformed params"))
+       Ok m          => do
+         result <- dispatch m
+         sendResult id (encodeResult m result)
 
 handleMessage : Message -> IO ()
 handleMessage (MkRequest id method params) = handleRequest id method params
