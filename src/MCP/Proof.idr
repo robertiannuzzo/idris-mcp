@@ -64,9 +64,31 @@ readAllLines h = go []
 ||| `Candidate.idr`, and the check runs from *inside* that directory so no
 ||| ambient `.ipkg` (like this project's own `server.ipkg`) gets picked up
 ||| and mismatched against it.
+||| Unsound escape hatches that let a term "typecheck" without actually
+||| proving anything: believe_me and friends coerce anything to anything,
+||| assert_* silence the totality checker, unsafePerformIO smuggles effects,
+||| and %foreign/%extern let the term claim arbitrary implementations.
+||| A candidate containing any of these is rejected before it ever reaches
+||| the typechecker -- with believe_me, `goal : (n : Nat) -> n = S n` is
+||| one line, and the oracle would accept it. (Found live, the night
+||| before a demo: the model actually did this when asked to prove a
+||| false statement.)
+forbiddenTokens : List String
+forbiddenTokens =
+  [ "believe_me", "really_believe_me", "assert_total", "assert_smaller"
+  , "unsafePerformIO", "%foreign", "%extern", "%default partial", "partial"
+  ]
+
+findForbidden : String -> Maybe String
+findForbidden src = find (\tok => tok `isInfixOf` src) forbiddenTokens
+
 export
 checkModule : (src : String) -> IO (Either String ())
 checkModule src = do
+  let Nothing = findForbidden src
+    | Just tok => pure (Left ("candidate rejected before typechecking: it uses `"
+                              ++ tok ++ "`, an unsound escape hatch. Prove the goal "
+                              ++ "without believe_me/assert_*/unsafePerformIO/FFI."))
   pid <- getPID
   let dir = "/private/tmp/idris-mcp-check-" ++ show pid
   _ <- createDir dir
